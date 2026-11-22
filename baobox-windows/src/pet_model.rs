@@ -33,9 +33,9 @@ fn mocap_walk(style: usize) -> Option<&'static MocapWalk> {
     TRACKS
         .get_or_init(|| {
             [
-                include_str!("../../../mac/Sources/Resources/Motions/mocap-walk-feminine.json"),
-                include_str!("../../../mac/Sources/Resources/Motions/mocap-walk-happy.json"),
-                include_str!("../../../mac/Sources/Resources/Motions/mocap-walk-childish.json"),
+                include_str!("../resources/motions/mocap-walk-feminine.json"),
+                include_str!("../resources/motions/mocap-walk-happy.json"),
+                include_str!("../resources/motions/mocap-walk-childish.json"),
             ]
             .map(|data| {
                 let track: MocapWalk = serde_json::from_str(data).ok()?;

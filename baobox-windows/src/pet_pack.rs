@@ -55,20 +55,20 @@ pub fn list() -> Vec<Entry> {
         bundled(
             "plush-cat",
             "毛绒猫",
-            include_bytes!("../../../mac/Sources/Resources/Pets/plush-cat/pet.json"),
-            include_bytes!("../../../mac/Sources/Resources/Pets/plush-cat/model.glb"),
+            include_bytes!("../resources/pets/plush-cat/pet.json"),
+            include_bytes!("../resources/pets/plush-cat/model.glb"),
         ),
         bundled(
             "plush-dog",
             "毛绒狗",
-            include_bytes!("../../../mac/Sources/Resources/Pets/plush-dog/pet.json"),
-            include_bytes!("../../../mac/Sources/Resources/Pets/plush-dog/model.glb"),
+            include_bytes!("../resources/pets/plush-dog/pet.json"),
+            include_bytes!("../resources/pets/plush-dog/model.glb"),
         ),
         bundled(
             "plush-bunny",
             "毛绒兔",
-            include_bytes!("../../../mac/Sources/Resources/Pets/plush-bunny/pet.json"),
-            include_bytes!("../../../mac/Sources/Resources/Pets/plush-bunny/model.glb"),
+            include_bytes!("../resources/pets/plush-bunny/pet.json"),
+            include_bytes!("../resources/pets/plush-bunny/model.glb"),
         ),
     ];
     let Some(entries) = directory().and_then(|dir| fs::read_dir(dir).ok()) else {
