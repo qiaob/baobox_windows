@@ -6,10 +6,11 @@ description = "Baobox Windows 实现：GDI 抓屏与截图 CLI"
 license = "MIT"
 
 [dependencies]
-baobox-core = { path = "../../shared/baobox-core" }
-baobox-app = { path = "../../shared/baobox-app" }
-baobox-image = { path = "../../shared/baobox-image" }
-baobox-render = { path = "../../shared/baobox-render" }
+# 共享库（qiaob/baobox_shared）：四行必须是同一个标签。升级与本地联调见那边的 docs/ARCHITECTURE.md。
+baobox-core = { git = "https://github.com/qiaob/baobox_shared", tag = "v0.1.0" }
+baobox-app = { git = "https://github.com/qiaob/baobox_shared", tag = "v0.1.0" }
+baobox-image = { git = "https://github.com/qiaob/baobox_shared", tag = "v0.1.0" }
+baobox-render = { git = "https://github.com/qiaob/baobox_shared", tag = "v0.1.0" }
 
 [target.'cfg(windows)'.dependencies]
 serde = { version = "1", features = ["derive"] }
