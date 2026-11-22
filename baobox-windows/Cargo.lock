@@ -17,6 +17,7 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 [[package]]
 name = "baobox-app"
 version = "0.1.0"
+source = "git+https://github.com/qiaob/baobox_shared?tag=v0.1.0#9c85722d47ad70dcb1b5d0173b1e324621cc2b8a"
 dependencies = [
  "baobox-core",
 ]
@@ -24,10 +25,12 @@ dependencies = [
 [[package]]
 name = "baobox-core"
 version = "0.1.0"
+source = "git+https://github.com/qiaob/baobox_shared?tag=v0.1.0#9c85722d47ad70dcb1b5d0173b1e324621cc2b8a"
 
 [[package]]
 name = "baobox-image"
 version = "0.1.0"
+source = "git+https://github.com/qiaob/baobox_shared?tag=v0.1.0#9c85722d47ad70dcb1b5d0173b1e324621cc2b8a"
 dependencies = [
  "png 0.17.16",
 ]
@@ -35,6 +38,7 @@ dependencies = [
 [[package]]
 name = "baobox-render"
 version = "0.1.0"
+source = "git+https://github.com/qiaob/baobox_shared?tag=v0.1.0#9c85722d47ad70dcb1b5d0173b1e324621cc2b8a"
 dependencies = [
  "baobox-core",
 ]
