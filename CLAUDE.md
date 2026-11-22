@@ -1,13 +1,18 @@
 # CLAUDE.md — Windows 实现
 
-给在 `windows/` 下干活的会话。**先读仓库根目录的 `CLAUDE.md`**（产品全貌与三平台约定），
-再读这一页。跨平台的共享逻辑在 `../shared/`，架构取舍在 `../docs/multiplatform/ARCHITECTURE.md`。
+给在本仓库（`qiaob/baobox_windows`）干活的会话。产品全貌与三平台共同的约定在 Mac 仓库
+[`qiaob/baobox_mac`](https://github.com/qiaob/baobox_mac) 的根 `CLAUDE.md`；跨平台的共享逻辑在
+[`qiaob/baobox_shared`](https://github.com/qiaob/baobox_shared)（按 git 标签引用，见下文「共享库」），
+架构取舍在那边的 `docs/ARCHITECTURE.md`。
+
+本仓库 2026-11 从 Baobox 单仓库的 `windows/` 目录拆出来，保留了提交历史；老提交信息里的 `#123`
+指 `qiaob/baobox_mac` 的 issue / PR。
 
 ## 这是什么
 
-`windows/baobox-windows/` —— 一个 Rust 二进制。不带参数就是**常驻 App**（托盘 + 全局快捷键 +
+`baobox-windows/` —— 一个 Rust 二进制。不带参数就是**常驻 App**（托盘 + 全局快捷键 +
 设置窗口）；带子命令则是一次性的命令行工具。目前实现了**截图**、**剪贴板**、**防休眠**、**窗口管理**、
-**Claude Code 助手**、**Codex 助手**、**键盘点击**七个工具。
+**Claude Code 助手**、**Codex 助手**、**键盘点击**、**桌面宠物**八个工具。
 
 ```
 baobox-windows                  常驻：托盘 + 快捷键 + 设置
@@ -35,6 +40,35 @@ cargo check --target x86_64-pc-windows-gnu --all-targets    # --all-targets 会�
 ⚠️ **绝大多数测试在开发机上跑不到** —— 覆盖层、编辑器、托盘、设置窗口都带 `#![cfg(windows)]`。
 它们只有在 `.github/workflows/build-windows.yml` 的真机 runner 上才真正执行。
 所以**改完一定要看那条流水线的结果**，本地 `cargo test` 通过说明不了什么。
+（在 macOS / Linux 主机上 `cargo test` 目前连编译都过不了：`clipboard_panel.rs` 里一条没带
+`cfg(windows)` 的测试引用了 `cfg(windows)` 的 `clipboard_text_tools`。CI 只在 Windows 上跑测试，所以没暴露。）
+
+风格与 lint 和 CI 一样卡，工具链固定 **1.90.0**：
+
+```bash
+cargo +1.90.0 fmt --check
+cargo +1.90.0 clippy --all-targets --target x86_64-pc-windows-gnu -- -D warnings
+```
+
+测试里的常量断言写成 `const { assert!(…) }`（clippy 不许运行期 `assert!(常量)`）。
+
+## 共享库
+
+`baobox-core` / `baobox-app` / `baobox-image` / `baobox-render` 来自
+[`qiaob/baobox_shared`](https://github.com/qiaob/baobox_shared)，`Cargo.toml` 里四行 git 依赖钉同一个标签，
+`Cargo.lock` 记着标签对应的提交哈希。
+
+- **升级**：四行的 `tag` 一起改，`cargo update -p baobox-core -p baobox-app -p baobox-image -p baobox-render`，
+  确认 `Cargo.lock` 只动了这四个包，再提交。
+- **同时改共享库**：把 `baobox_shared` 检出在本仓库旁边，建一个**不提交**的 `.cargo/config.toml`：
+  ```toml
+  [patch."https://github.com/qiaob/baobox_shared"]
+  baobox-core = { path = "../baobox_shared/baobox-core" }
+  baobox-app = { path = "../baobox_shared/baobox-app" }
+  baobox-image = { path = "../baobox_shared/baobox-image" }
+  baobox-render = { path = "../baobox_shared/baobox-render" }
+  ```
+  用完删掉它。共享库那边先合并、打标签，这边再改 `tag`。
 
 ## 只给真正碰 Win32 的部分加 `cfg(windows)`
 
@@ -73,6 +107,16 @@ cargo check --target x86_64-pc-windows-gnu --all-targets    # --all-targets 会�
 | `keyboardnav_module.rs` | 键盘点击的 `ToolModule` 适配层 |
 | `hint_overlay.rs` | 标签覆盖层（分层窗口 + color key） |
 | `store.rs` | 配置与历史的落盘位置 |
+| `pet.rs` | 桌面宠物的 `ToolModule`：菜单、设置页、显示 / 隐藏、形象下载 |
+| `pet_model.rs` | glTF / VRM 模型解析与软件渲染、动捕走路（`resources/motions/`） |
+| `pet_pack.rs` | 形象包：内置三只（`resources/pets/`，编进二进制）+ `%APPDATA%\Baobox\Pets` 里的 |
+| `pet_download.rs` | 可下载形象：从本仓库 `assets/pets/` 下载，地址钉在 `REVISION` 那个提交，逐文件校验大小 + SHA-256（清单 `pet_catalog.json`） |
+| `pet_notify.rs` / `pet_ring.rs` | 宠物气泡通知、勿扰、通知历史 / 宠物身边的环形菜单 |
+
+**宠物素材**：`assets/pets/` 里的文件**只增不改**。要加形象：文件放进 `assets/pets/<id>/` 提交，
+再在下一个提交里把 `pet_download.rs` 的 `REVISION` 改成上一个提交的哈希、往 `pet_catalog.json` 登记大小与哈希
+（`catalog_checksums_match_the_repository_assets` 测试会核对）。Mac 版的宠物下载目前仍指向
+`qiaob/baobox_mac` 里的同一批文件，两边各管各的。
 
 ## 这个平台上最容易踩的十个坑
 
@@ -155,12 +199,19 @@ Windows 把一次按键拆成两条消息，所以**字母键不会像 Linux 那
 
 ## 改代码前
 
-1. **先问这是不是平台相关的**。不是就放 `../shared/`。
+1. **先问这是不是平台相关的**。不是就放 `baobox_shared`。
 2. 加工具：实现 `ToolModule`，在 `app.rs` 的 `build_registry()` 里注册一行。
-3. **动作 id 必须与 Linux 侧逐字一致** —— 对不齐的话同一份配置里的快捷键绑定换个系统就失效。
+3. **动作 id 必须与 Linux 侧（`qiaob/baobox_linux`）逐字一致** —— 对不齐的话同一份配置里的快捷键绑定换个系统就失效。
    截图、剪贴板的工具 id 与快捷键动作 id 已收进 `baobox_app::tools`，两边 `pub use` 同一份，
    字面量由共享层的测试钉死；防休眠、窗口管理、键盘点击的还在各自模块里，
    要改就两边一起改（#111 会陆续收进去）。
 4. 设置项**声明了就必须有人读**，有守卫测试盯着。
-5. 提交前至少跑 `cargo check --target x86_64-pc-windows-gnu --all-targets`，
-   然后**看 CI 的 Windows 那条**。
+5. 提交前至少跑上面的 fmt 与 clippy（`--target x86_64-pc-windows-gnu`），
+   然后**看 CI 的 Windows 那条**（`.github/workflows/build-windows.yml`）。
+
+## Git 与发版
+
+- 开发在 feature 分支（`claude/**` 会触发 CI），提交信息用英文 conventional commits，
+  末尾带 `Co-Authored-By: Claude <noreply@anthropic.com>`；提交者 `Claude <noreply@anthropic.com>`。
+- 发版：推 `vX.Y.Z` 标签，`.github/workflows/release.yml` 按标签改 `Cargo.toml` 版本号、Release 构建、
+  打 `Baobox-X.Y.Z-windows-x86_64.zip` 发到本仓库的 GitHub Release。想先试打包：Actions 里手动跑 Release，不发布。
