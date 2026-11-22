@@ -1,0 +1,83 @@
+name: Release
+
+# 推 vX.Y.Z 标签触发：编译 Windows 版、打 zip，发到这个仓库的 GitHub Release：
+# - Baobox-X.Y.Z-windows-x86_64.zip      Windows 可执行文件
+# 版本号以标签为唯一事实来源：编译前把 Cargo.toml 的 version 改成 X.Y.Z，「关于」里显示的就是它。
+# 宠物素材不进包：App 里点下载时按 src/pet_download.rs 钉住的提交从本仓库的 assets/pets/ 取。
+on:
+  push:
+    tags:
+      - "v*"
+  # 手动试跑：照样编译、打包，产物留在这次运行的 Artifacts 里，**不发布**（publish 只在推标签时跑）。
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "试打包用的版本号（不发布）"
+        default: "0.0.0-dryrun"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Set version from tag
+        id: version
+        working-directory: baobox-windows
+        run: |
+          tag="${{ inputs.version || github.ref_name }}"
+          version="${tag#v}"
+          sed -i -E "0,/^version = \".*\"/s//version = \"${version}\"/" Cargo.toml
+          grep -m1 '^version' Cargo.toml
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      # 用 `cargo rustc -- -D warnings` 而不是 `RUSTFLAGS`，理由同 build-windows.yml。
+      - name: Build release (warnings are errors)
+        working-directory: baobox-windows
+        run: cargo rustc --release -- -D warnings
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP/dist" | Out-Null
+          Compress-Archive -Path baobox-windows/target/release/baobox-windows.exe `
+            -DestinationPath "$env:RUNNER_TEMP/dist/Baobox-${{ steps.version.outputs.version }}-windows-x86_64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: ${{ runner.temp }}/dist/*
+          if-no-files-found: error
+
+  publish:
+    needs: [windows]
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          ls -l dist
+          # 同名 Release 已存在（比如本地手动先发了）就只补传产物，不重复创建。
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* --title "Baobox for Windows $tag" --generate-notes
+          fi
