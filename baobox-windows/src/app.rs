@@ -655,7 +655,7 @@ fn about(hwnd: HWND) {
     unsafe {
         MessageBoxW(
             hwnd,
-            w!("Baobox —— 菜单栏效率工具集合\n\nhttps://github.com/qiaob/baobox_mac"),
+            w!("Baobox —— 菜单栏效率工具集合\n\nhttps://github.com/qiaob/baobox_windows"),
             w!("关于 Baobox"),
             MB_OK | MB_ICONINFORMATION,
         );
