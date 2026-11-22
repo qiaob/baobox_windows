@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::OnceLock;
 
-const REVISION: &str = "1c39c54a57497f487e296d33de96927db9f734be";
+const REVISION: &str = "e384e55a9c37aac411fb7b6700dd55da8e5bba06";
 const MARKER: &str = ".baobox-download";
 
 #[derive(Deserialize)]
@@ -79,8 +79,8 @@ fn fetch(entry: &CatalogEntry, file: &File, destination: &Path) -> Result<(), St
     let system = std::env::var_os("SystemRoot").ok_or("找不到 Windows 系统目录")?;
     let curl = PathBuf::from(system).join("System32").join("curl.exe");
     for base in [
-        format!("https://raw.githubusercontent.com/qiaob/baobox_mac/{REVISION}/assets/pets"),
-        format!("https://cdn.jsdelivr.net/gh/qiaob/baobox_mac@{REVISION}/assets/pets"),
+        format!("https://raw.githubusercontent.com/qiaob/baobox_windows/{REVISION}/assets/pets"),
+        format!("https://cdn.jsdelivr.net/gh/qiaob/baobox_windows@{REVISION}/assets/pets"),
     ] {
         let url = format!("{}/{}/{}", base, entry.id, file.name);
         let status = Command::new(&curl)
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn catalog_checksums_match_the_repository_assets() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/pets");
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets/pets");
         assert_eq!(catalog().len(), 18);
         for entry in catalog() {
             for file in &entry.files {
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn catalog_models_decode_and_render() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../assets/pets");
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets/pets");
         for entry in catalog() {
             let folder = root.join(&entry.id);
             let model = entry
